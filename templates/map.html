@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+{% endblock %}
+{% block content %}
+<section class="card">
+  <h2>Vue carte (OpenStreetMap)</h2>
+  <div id="map"></div>
+</section>
+<script>
+const points = {{ points|tojson }};
+const map = L.map('map').setView([-4.67, 55.49], 8);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
+const markers = [];
+points.forEach(p => {
+  const m = L.marker([p.lat, p.lng]).addTo(map);
+  m.bindPopup(`<b>${p.title}</b><br>${p.date} - ${p.destination}<br>${p.location || ''}<br><a href="https://www.openstreetmap.org/?mlat=${p.lat}&mlon=${p.lng}#map=15/${p.lat}/${p.lng}" target="_blank">Ouvrir dans OSM</a>`);
+  markers.push(m);
+});
+if (markers.length) {
+  const group = L.featureGroup(markers);
+  map.fitBounds(group.getBounds().pad(0.2));
+}
+</script>
+{% endblock %}

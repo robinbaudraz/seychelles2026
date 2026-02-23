@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+{% block title %}Itinéraire{% endblock %}
+{% block content %}
+<section class="grid two">
+  <article class="card">
+    <h2>Résumé global</h2>
+    <ul>
+      <li>07/10 au 08/10 : Dubaï (2 nuits)</li>
+      <li>09/10 : transfert vers Mahé</li>
+      <li>10/10 au 24/10 : Seychelles + retours/transferts</li>
+      <li>Statuts: Réservé {{ status_counts.get('reserve', 0) }}, À réserver {{ status_counts.get('a_reserver', 0) }}, Option {{ status_counts.get('option', 0) }}</li>
+    </ul>
+  </article>
+
+  {% if is_admin %}
+  <article class="card">
+    <h2>Ajouter une activité</h2>
+    <form method="post" action="{{ url_for('add_activity') }}" enctype="multipart/form-data" id="activityForm">
+      <label>Jour
+        <select name="day_id" required>
+          {% for day in days %}<option value="{{ day.id }}">{{ day.day_date.strftime('%d/%m/%Y') }} - {{ day.destination }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Période
+        <select name="period"><option>matin</option><option>apres-midi</option><option>soir</option><option selected>autre</option></select>
+      </label>
+      <label>Titre<input name="title" required></label>
+      <label>Description<textarea name="description"></textarea></label>
+      <label>Horaire<input name="schedule" placeholder="08:30 - 12:00"></label>
+      <label>Prestataire<input name="provider"></label>
+      <label>Lien<input name="link" type="url"></label>
+      <label>Statut
+        <select name="status"><option value="reserve">réservé</option><option value="a_reserver">à réserver</option><option value="option" selected>option</option></select>
+      </label>
+      <label>Référence réservation<input name="reservation_ref"></label>
+
+      <label>Recherche lieu (OpenStreetMap)<input id="geocodeQuery" placeholder="ex: Anse Lazio"></label>
+      <button type="button" id="searchBtn">Rechercher</button>
+      <div id="geoResults"></div>
+
+      <label>Lieu sélectionné<input name="location_label" id="locationLabel"></label>
+      <label>Latitude<input name="lat" id="lat"></label>
+      <label>Longitude<input name="lng" id="lng"></label>
+
+      <label>Documents<input type="file" name="documents" multiple></label>
+      <label>Photos<input type="file" name="photos" multiple accept="image/*"></label>
+      <label>Légende photo<input name="photo_caption"></label>
+      <button type="submit">Ajouter</button>
+    </form>
+  </article>
+  {% endif %}
+</section>
+
+{% if is_admin %}
+<section class="card">
+  <h2>Ajouter une journée</h2>
+  <form method="post" action="{{ url_for('add_day') }}" class="inline">
+    <input type="date" name="day_date" required>
+    <input name="destination" placeholder="Destination" required>
+    <input name="summary" placeholder="Résumé court">
+    <button>Ajouter le jour</button>
+  </form>
+</section>
+{% endif %}
+
+{% for day in days %}
+<section class="card">
+  <h3>{{ day.day_date.strftime('%A %d/%m/%Y') }} — {{ day.destination }}</h3>
+  <p>{{ day.summary }}</p>
+  {% if day.activities %}
+    {% for act in day.activities %}
+      <article class="activity">
+        <h4>{{ act.period|capitalize }} · {{ act.title }}</h4>
+        <p>{{ act.description }}</p>
+        <p><strong>Infos:</strong> {{ act.schedule or '-' }} | {{ act.provider or '-' }} | statut: <span class="status {{ act.status }}">{{ act.status }}</span></p>
+        {% if act.location_label %}<p>📍 {{ act.location_label }} {% if act.lat and act.lng %}<a target="_blank" href="https://www.openstreetmap.org/?mlat={{ act.lat }}&mlon={{ act.lng }}#map=14/{{ act.lat }}/{{ act.lng }}">Ouvrir carte</a>{% endif %}</p>{% endif %}
+        {% if act.link %}<p><a href="{{ act.link }}" target="_blank">Lien prestataire</a></p>{% endif %}
+        {% if act.attachments %}
+          <p>Documents:</p>
+          <ul>{% for doc in act.attachments %}<li><a href="{{ url_for('private_file', stored_name=doc.stored_name) }}" target="_blank">{{ doc.original_name }}</a></li>{% endfor %}</ul>
+        {% endif %}
+        {% if act.photos %}
+          <div class="photos">{% for ph in act.photos %}<img src="{{ url_for('private_file', stored_name=ph.stored_name) }}" alt="photo" />{% endfor %}</div>
+        {% endif %}
+      </article>
+    {% endfor %}
+  {% else %}
+    <p>Aucune activité planifiée.</p>
+  {% endif %}
+</section>
+{% endfor %}
+
+<script>
+const searchBtn = document.getElementById('searchBtn');
+if (searchBtn) {
+  searchBtn.addEventListener('click', async () => {
+    const q = document.getElementById('geocodeQuery').value;
+    const box = document.getElementById('geoResults');
+    box.innerHTML = 'Recherche...';
+    const response = await fetch(`/api/geocode?q=${encodeURIComponent(q)}`);
+    const data = await response.json();
+    box.innerHTML = '';
+    data.forEach(item => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = item.name;
+      btn.addEventListener('click', () => {
+        document.getElementById('locationLabel').value = item.name;
+        document.getElementById('lat').value = item.lat;
+        document.getElementById('lng').value = item.lon;
+      });
+      box.appendChild(btn);
+    });
+  });
+}
+</script>
+{% endblock %}
