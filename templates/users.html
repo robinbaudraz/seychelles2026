@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="card">
+  <h2>Membres</h2>
+  <form method="post" class="inline">
+    <input name="username" placeholder="username" required>
+    <input name="password" placeholder="mot de passe" required>
+    <select name="role"><option value="participant">participant</option><option value="admin">admin</option></select>
+    <button>Ajouter</button>
+  </form>
+  <table>
+    <thead><tr><th>Username</th><th>Rôle</th><th>Action</th></tr></thead>
+    <tbody>
+      {% for u in users %}
+      <tr>
+        <td>{{ u.username }}</td>
+        <td>{{ u.role }}</td>
+        <td>
+          <form method="post" action="{{ url_for('update_role', user_id=u.id) }}" class="inline">
+            <select name="role"><option value="participant">participant</option><option value="admin">admin</option></select>
+            <button>Modifier</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

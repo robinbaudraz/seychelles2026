@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+instance/trip.db
+instance/uploads/*
+!.gitkeep
